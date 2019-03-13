@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Remoting.Channels;
 using System.Threading;
 
 namespace SingleLaneBridge
@@ -10,12 +9,14 @@ namespace SingleLaneBridge
 
 		protected BaseThread()
 		{
-			_thread = new Thread(new ThreadStart(this.RunThread));
+			_thread = new Thread(new ThreadStart(RunThread));
+		
 		}
 
 		public void Start() => _thread.Start();
 		public void Join() => _thread.Join();
 		public bool IsAlive() => _thread.IsAlive;
+		public int ManagedThreadId => _thread.ManagedThreadId;
 		//Override in base class
 		public abstract void RunThread();
 	}
@@ -34,52 +35,64 @@ namespace SingleLaneBridge
 			this.ScenarioNum = ScenarioNum;
 			this.Id = Id;
 			this.SingleLaneBridge = SingleLaneBridge;
-			RunThread();
 		}
 
 		public override void RunThread()
 		{
-			switch (ScenarioNum)
+			if (!IsAlive())
 			{
-				case 1:
-					CrossingTheBridge(UnfairlyAndUnsafely);
-					break;
-				case 2:
-					CrossingTheBridge(UnfairlyAndSafely);
-					break;
-				case 3:
-					Console.WriteLine("Case 3");
-					break;
-				case 4:
-					Console.WriteLine("Case 4");
-					break;
-				default:
-					Console.WriteLine("Wrong Choice");
-					break;
+				switch (ScenarioNum)
+				{
+					case 1:
+						CrossingTheBridge(UnfairlyAndUnsafely);
+						break;
+					case 2:
+						CrossingTheBridge(UnfairlyAndSafely);
+						break;
+					case 3:
+						Console.WriteLine("Case 3");
+						break;
+					case 4:
+						Console.WriteLine("Case 4");
+						break;
+					default:
+						Console.WriteLine("Wrong Choice");
+						break;
+				}
 			}
+		}
+
+		public Action GetAction()
+		{
+			return RunThread;
 		}
 
 		private void CrossingTheBridge(Action WayOfCrossingTheBridgeFunc)
 		{
+			Thread.Yield();
 			Start();
-			Console.WriteLine("{} Car {} arrived at the bridge at Time {}", SideOfCar, Id, Program.Time);
+			Console.WriteLine($"{SideOfCar} Car {Id} arrived at the bridge at Time {Program.Time}");
 			Program.Time++;
 			WayOfCrossingTheBridgeFunc();
-			Console.WriteLine("{} Car {} crossed the bridge at time {}", SideOfCar, Id, Program.Time);
+			Console.WriteLine($"{SideOfCar} Car {Id} crossed the bridge at time {Program.Time}");
+			Program.Time++;
 		}
 
 		private void UnfairlyAndUnsafely()
 		{
-			Console.WriteLine("{} Car {} is crossing the bridge at time {}", SideOfCar, Id, Program.Time);
+			Console.WriteLine($"{SideOfCar} Car {Id} is crossing the bridge at time {Program.Time}");
 			Program.Time++;
-			Thread.Sleep(3000);
+			Random TimeThreshHold = new Random();
+			int TimeDelay = TimeThreshHold.Next(5) * 1000;
+			Thread.Sleep(TimeDelay);
+			
 
 		}
 
 		private void UnfairlyAndSafely()
 		{
 			Join();
-			Console.WriteLine("{} Car {} is crossing the bridge at time {}", SideOfCar, Id, Program.Time);
+			Console.WriteLine($"{SideOfCar} Car {Id} is crossing the bridge at time {Program.Time}");
 			Program.Time++;
 			Thread.Sleep(3000);
 		}
