@@ -1,11 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Data;
-using System.Globalization;
-using System.Linq;
-using System.Runtime.Remoting.Messaging;
 
 namespace SingleLaneBridge
 {
@@ -17,6 +14,7 @@ namespace SingleLaneBridge
 		private int ScenarioChoice;
 		private List<Car> LeftCars;
 		private List<Car> RightCars;
+		private readonly object BridgeLock = new object();
 
 		public Bridge(int NumberOfLeftCars, int NumberOfRightCars, int ArrivalTime, int ScenarioChoice)
 		{
@@ -36,14 +34,14 @@ namespace SingleLaneBridge
 			{
 				for (int i = 0; i < NumberOfLeftCars; i++)
 				{
-					CarList.Add(new Car(i, "Left", 3, ScenarioChoice, this));
+					CarList.Add(new Car(i, "Left", 3, ScenarioChoice, this, BridgeLock));
 				}
 			}
 			else
 			{
 				for (int i = 0; i < NumberOfRightCars; i++)
 				{
-					CarList.Add(new Car(i, "Right", 5, ScenarioChoice, this));
+					CarList.Add(new Car(i, "Right", 5, ScenarioChoice, this, BridgeLock));
 				}
 			}
 			return CarList;
@@ -51,6 +49,8 @@ namespace SingleLaneBridge
 
 		public void StartCars()
 		{
+			Console.WriteLine(string.Empty.PadLeft(6, '\t') + "Starting Simulation");
+
 			switch (ScenarioChoice)
 			{
 				case 1:
@@ -73,26 +73,44 @@ namespace SingleLaneBridge
 
 		private void ScenarioOne()
 		{
-			List<Action> CarActions = new List<Action>();
+			List<Task> CarActions = new List<Task>();
 
-			LeftCars.ForEach((item) => { CarActions.Add(item.GetAction()); });
-			RightCars.ForEach((item) => { CarActions.Add(item.GetAction()); });
+			Task StartLeftCars = Task.Factory.StartNew(() => LeftCars.ForEach((item) =>
+			{
+				Thread.Sleep(3000);
+				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
+			}));
 
-			Action[] FinalCarActions = CarActions.ToArray();
+			Task StartRightCars = Task.Factory.StartNew(() => RightCars.ForEach((item) =>
+			{
+				Thread.Sleep(2000);
+				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
+			}));
 
-			Parallel.Invoke(FinalCarActions);
+			Task.WaitAll(StartLeftCars, StartRightCars);
+
+			Task.WaitAll(CarActions.ToArray());
 		}
 
 		private void ScenarioTwo()
 		{
-			List<Action> CarActions = new List<Action>();
+			List<Task> CarActions = new List<Task>();
 
-			LeftCars.ForEach((item) => { CarActions.Add(item.GetAction()); });
-			RightCars.ForEach((item) => { CarActions.Add(item.GetAction()); });
+			Task StartLeftCars = Task.Factory.StartNew(() => LeftCars.ForEach((item) =>
+			{
+				Thread.Sleep(3000);
+				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
+			}));
 
-			Action[] FinalCarActions = CarActions.ToArray();
+			Task StartRightCars = Task.Factory.StartNew(() => RightCars.ForEach((item) =>
+			{
+				Thread.Sleep(2000);
+				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
+			}));
 
-			Parallel.Invoke(FinalCarActions);
+			Task.WaitAll(StartLeftCars, StartRightCars);
+
+			Task.WaitAll(CarActions.ToArray());
 		}
 	}
 }
