@@ -1,56 +1,37 @@
 ﻿using System;
-using System.Threading.Tasks;
 using System.Threading;
 
 namespace SingleLaneBridge
 {
-
-	public abstract class BaseTask
+	public class Car
 	{
-		private Task _task;
-
-		protected BaseTask()
-		{
-			_task = new Task(() => RunThread());
-
-		}
-
-		public void Start() => _task.Start();
-		public void Wait() => _task.Wait();
-		//Override in base class
-		public abstract void RunThread();
-	}
-
-	public class Car : BaseTask
-	{
-		private string SideOfCar;
-		private int TimeToCross, ScenarioNum, CarId;
-		private Bridge SingleLaneBridge;
+		private string sideOfCar;
+		private int timeToCross, scenarioNum, carId;
+		private Bridge singleLaneBridge;
 		Random TimeThreshHold = new Random();
-		private object BridgeLock;
 
 
-		public Car(int CarId, string SideOfCar, int TimeToCross, int ScenarioNum, Bridge SingleLaneBridge, object BridgeLock)
+		public Car(int carId, string sideOfCar, int timeToCross, int scenarioNum, Bridge singleLaneBridge)
 		{
-			this.SideOfCar = SideOfCar;
-			this.TimeToCross = TimeToCross;
-			this.ScenarioNum = ScenarioNum;
-			this.CarId = CarId;
-			this.SingleLaneBridge = SingleLaneBridge;
-			this.BridgeLock = BridgeLock;
+			this.sideOfCar = sideOfCar;
+			this.timeToCross = timeToCross;
+			this.scenarioNum = scenarioNum;
+			this.carId = carId;
+			this.singleLaneBridge = singleLaneBridge;
+
 
 		}
 
-		public override void RunThread()
+		public void RunThread()
 		{
 
-			switch (ScenarioNum)
+			switch (scenarioNum)
 			{
 				case 1:
-					CrossingTheBridge(UnfairlyAndUnsafely);
+					UnfairlyAndUnsafely();
 					break;
 				case 2:
-					CrossingTheBridge(UnfairlyAndSafely);
+					UnfairlyAndSafely();
 					break;
 				case 3:
 					Console.WriteLine("Case 3");
@@ -65,47 +46,72 @@ namespace SingleLaneBridge
 		}
 
 
-		private void CrossingTheBridge(Action WayOfCrossingTheBridgeFunc)
-		{
-			if(SideOfCar == "Right")
-				Console.Write(string.Empty.PadLeft(8, '\t'));
-			Console.WriteLine($"{SideOfCar} Car {CarId} arrived at the bridge at Time {Program.Time}");
-			Delay();
-			Program.Time++;
-			if (ScenarioNum == 2)
-			{
-				lock (BridgeLock)
-				{
-					WayOfCrossingTheBridgeFunc();
-				}
-			}
-			else
-				WayOfCrossingTheBridgeFunc();
-			if (SideOfCar == "Left")
-				Console.Write(string.Empty.PadLeft(8, '\t'));
-			Console.WriteLine($"{SideOfCar} Car {CarId} crossed the bridge at time {Program.Time}");
-			Program.Time++;
-		}
-
 		private void UnfairlyAndUnsafely()
 		{
-			Delay();
-			if (SideOfCar == "Right")
+			if (sideOfCar == "Right")
 				Console.Write(string.Empty.PadLeft(8, '\t'));
-			Console.WriteLine($"{SideOfCar} Car {CarId} is crossing the bridge at time {Program.Time}");
-			Program.Time++;
+			Console.WriteLine($"{sideOfCar} Car {carId} arrived at the bridge at Time {Program.Time}");
 			Delay();
-
+			Program.Time++;
+			CrossTheBridge();
+			if (sideOfCar == "Left")
+				Console.Write(string.Empty.PadLeft(8, '\t'));
+			Console.WriteLine($"{sideOfCar} Car {carId} crossed the bridge at time {Program.Time}");
+			Program.Time++;
 		}
 
 		private void UnfairlyAndSafely()
 		{
-			Delay();
-			if (SideOfCar == "Right")
+			if (sideOfCar == "Right")
 				Console.Write(string.Empty.PadLeft(8, '\t'));
-			Console.WriteLine($"{SideOfCar} Car {CarId} is crossing the bridge at time {Program.Time}");
+			Console.WriteLine($"{sideOfCar} Car {carId} arrived at the bridge at Time {Program.Time}");
+			Delay();
+			Program.Time++;
+			lock (singleLaneBridge.BridgeLock)
+			{
+				CrossTheBridge();
+				if (sideOfCar == "Left")
+					Console.Write(string.Empty.PadLeft(8, '\t'));
+				Console.WriteLine($"{sideOfCar} Car {carId} crossed the bridge at time {Program.Time}");
+			}
+			Program.Time++;
+		}
+
+		private void AutoswitchAndSafely()
+		{
+			if (sideOfCar == "Right")
+				Console.Write(string.Empty.PadLeft(8, '\t'));
+			Console.WriteLine($"{sideOfCar} Car {carId} arrived at the bridge at Time {Program.Time}");
+			Delay();
+			Program.Time++;
+			lock (singleLaneBridge.CheckLock)
+			{
+
+				lock (singleLaneBridge.BridgeLock)
+				{
+					CrossTheBridge();
+					if (sideOfCar == "Left")
+						Console.Write(string.Empty.PadLeft(8, '\t'));
+					Console.WriteLine($"{sideOfCar} Car {carId} crossed the bridge at time {Program.Time}");
+				}
+			}
+			Program.Time++;
+		}
+
+		private void CrossTheBridge()
+		{
+			Delay();
+			if (sideOfCar == "Right")
+				Console.Write(string.Empty.PadLeft(8, '\t'));
+			Console.WriteLine($"{sideOfCar} Car {carId} is crossing the bridge at time {Program.Time}");
 			Program.Time++;
 			Delay();
+
+		}
+
+		private bool CheckCars()
+		{
+			return true;
 		}
 
 		private void Delay()
@@ -115,98 +121,3 @@ namespace SingleLaneBridge
 		}
 	}
 }
-
-	//public abstract class BaseThread
-	//{
-	//	private Thread _thread;
-
-	//	protected BaseThread()
-	//	{
-	//		_thread = new Thread(new ThreadStart(RunThread));
-
-	//	}
-
-	//	public void Start() => _thread.Start();
-	//	public void Join() => _thread.Join();
-	//	public bool IsAlive() => _thread.IsAlive;
-	//	public int ManagedThreadId => _thread.ManagedThreadId;
-	//	//Override in base class
-	//	public abstract void RunThread();
-	//}
-
-
-	//public class Car : BaseThread
-	//{
-	//	private string SideOfCar;
-	//	private int TimeToCross, ScenarioNum, Id;
-	//	private Bridge SingleLaneBridge;
-
-	//	public Car(int Id, string SideOfCar, int TimeToCross, int ScenarioNum, Bridge SingleLaneBridge)
-	//	{
-	//		this.SideOfCar = SideOfCar;
-	//		this.TimeToCross = TimeToCross;
-	//		this.ScenarioNum = ScenarioNum;
-	//		this.Id = Id;
-	//		this.SingleLaneBridge = SingleLaneBridge;
-	//	}
-
-	//	public override void RunThread()
-	//	{
-	//		if (!IsAlive())
-	//		{
-	//			switch (ScenarioNum)
-	//			{
-	//				case 1:
-	//					CrossingTheBridge(UnfairlyAndUnsafely);
-	//					break;
-	//				case 2:
-	//					CrossingTheBridge(UnfairlyAndSafely);
-	//					break;
-	//				case 3:
-	//					Console.WriteLine("Case 3");
-	//					break;
-	//				case 4:
-	//					Console.WriteLine("Case 4");
-	//					break;
-	//				default:
-	//					Console.WriteLine("Wrong Choice");
-	//					break;
-	//			}
-	//		}
-	//	}
-
-	//	public Action GetAction()
-	//	{
-	//		return RunThread;
-	//	}
-
-	//	private void CrossingTheBridge(Action WayOfCrossingTheBridgeFunc)
-	//	{
-	//		Thread.Yield();
-	//		Start();
-	//		Console.WriteLine($"{SideOfCar} Car {Id} arrived at the bridge at Time {Program.Time}");
-	//		Program.Time++;
-	//		WayOfCrossingTheBridgeFunc();
-	//		Console.WriteLine($"{SideOfCar} Car {Id} crossed the bridge at time {Program.Time}");
-	//		Program.Time++;
-	//	}
-
-	//	private void UnfairlyAndUnsafely()
-	//	{
-	//		Console.WriteLine($"{SideOfCar} Car {Id} is crossing the bridge at time {Program.Time}");
-	//		Program.Time++;
-	//		Random TimeThreshHold = new Random();
-	//		int TimeDelay = TimeThreshHold.Next(5) * 1000;
-	//		Thread.Sleep(TimeDelay);
-
-
-	//	}
-
-	//	private void UnfairlyAndSafely()
-	//	{
-	//		Join();
-	//		Console.WriteLine($"{SideOfCar} Car {Id} is crossing the bridge at time {Program.Time}");
-	//		Program.Time++;
-	//		Thread.Sleep(3000);
-	//	}
-	//}

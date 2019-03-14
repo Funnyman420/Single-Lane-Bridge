@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,22 +7,26 @@ namespace SingleLaneBridge
 {
 	public class Bridge
 	{
-		private int NumberOfLeftCars;
-		private int NumberOfRightCars;
-		private int ArrivalTime;
-		private int ScenarioChoice;
-		private List<Car> LeftCars;
-		private List<Car> RightCars;
-		private readonly object BridgeLock = new object();
+		private int numberOfLeftCars;
+		private int numberOfRightCars;
+		private int arrivalTime;
+		private int scenarioChoice;
+		private List<Car> leftCars;
+		private List<Car> rightCars;
+		private readonly object bridgeLock = new object();
+		private readonly object checkLock = new object();
+		private int leftCarsCounter = 0;
+		private int rightCarsCounter = 0;
+		private string previousSide;
 
 		public Bridge(int NumberOfLeftCars, int NumberOfRightCars, int ArrivalTime, int ScenarioChoice)
 		{
-			this.NumberOfLeftCars = NumberOfLeftCars;
-			this.NumberOfRightCars = NumberOfRightCars;
-			this.ArrivalTime = ArrivalTime * 1000;
-			this.ScenarioChoice = ScenarioChoice;
-			LeftCars = CreateCarList("Left");
-			RightCars = CreateCarList("Right");
+			this.numberOfLeftCars = NumberOfLeftCars;
+			this.numberOfRightCars = NumberOfRightCars;
+			this.arrivalTime = ArrivalTime * 1000;
+			this.scenarioChoice = ScenarioChoice;
+			leftCars = CreateCarList("Left");
+			rightCars = CreateCarList("Right");
 
 		}
 
@@ -32,16 +35,16 @@ namespace SingleLaneBridge
 			List<Car> CarList = new List<Car>();
 			if (SideOfCar == "Left")
 			{
-				for (int i = 0; i < NumberOfLeftCars; i++)
+				for (int i = 0; i < numberOfLeftCars; i++)
 				{
-					CarList.Add(new Car(i, "Left", 3, ScenarioChoice, this, BridgeLock));
+					CarList.Add(new Car(i, "Left", 3, scenarioChoice, this, bridgeLock, checkLock));
 				}
 			}
 			else
 			{
-				for (int i = 0; i < NumberOfRightCars; i++)
+				for (int i = 0; i < numberOfRightCars; i++)
 				{
-					CarList.Add(new Car(i, "Right", 5, ScenarioChoice, this, BridgeLock));
+					CarList.Add(new Car(i, "Right", 5, scenarioChoice, this, bridgeLock, checkLock));
 				}
 			}
 			return CarList;
@@ -51,13 +54,13 @@ namespace SingleLaneBridge
 		{
 			Console.WriteLine(string.Empty.PadLeft(6, '\t') + "Starting Simulation");
 
-			switch (ScenarioChoice)
+			switch (scenarioChoice)
 			{
 				case 1:
-					ScenarioOne();
+					ScenarioOneAndTwo();
 					break;
 				case 2:
-					ScenarioTwo();
+					ScenarioOneAndTwo();
 					break;
 				case 3:
 					Console.WriteLine("Scenario 3");
@@ -71,17 +74,17 @@ namespace SingleLaneBridge
 			}
 		}
 
-		private void ScenarioOne()
+		private void ScenarioOneAndTwo()
 		{
 			List<Task> CarActions = new List<Task>();
 
-			Task StartLeftCars = Task.Factory.StartNew(() => LeftCars.ForEach((item) =>
+			Task StartLeftCars = Task.Factory.StartNew(() => leftCars.ForEach((item) =>
 			{
 				Thread.Sleep(3000);
 				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
 			}));
 
-			Task StartRightCars = Task.Factory.StartNew(() => RightCars.ForEach((item) =>
+			Task StartRightCars = Task.Factory.StartNew(() => rightCars.ForEach((item) =>
 			{
 				Thread.Sleep(2000);
 				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
@@ -92,25 +95,29 @@ namespace SingleLaneBridge
 			Task.WaitAll(CarActions.ToArray());
 		}
 
-		private void ScenarioTwo()
+		public object CheckLock
 		{
-			List<Task> CarActions = new List<Task>();
+			get { return checkLock; }
+		}
 
-			Task StartLeftCars = Task.Factory.StartNew(() => LeftCars.ForEach((item) =>
-			{
-				Thread.Sleep(3000);
-				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
-			}));
+		public object BridgeLock
+		{
+			get { return bridgeLock; }
+		}
 
-			Task StartRightCars = Task.Factory.StartNew(() => RightCars.ForEach((item) =>
-			{
-				Thread.Sleep(2000);
-				CarActions.Add(Task.Factory.StartNew(() => item.RunThread()));
-			}));
-
-			Task.WaitAll(StartLeftCars, StartRightCars);
-
-			Task.WaitAll(CarActions.ToArray());
+		public int LeftCarsCounter
+		{
+			get { return leftCarsCounter; }
+			set { leftCarsCounter = value; }
+		}
+		public int RightCarsCounter
+		{
+			get { return rightCarsCounter; }
+			set { rightCarsCounter = value; }
+		}
+		public string PreviousSide
+		{
+			get { return previousSide; }
 		}
 	}
 }
