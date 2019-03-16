@@ -12,21 +12,22 @@ namespace SingleLaneBridge
 
 		static void Main(string[] args)
 		{
-			int NumberOfLeftCars = GetNumber(0);
-			int NumberOfRightCars = GetNumber(1);
-			int ArrivalTime = GetNumber(2);
-			int ScenarioChoice = GetNumber(3);
+			int numberOfLeftCars = GetNumber(0);
+			int numberOfRightCars = GetNumber(1);
+			int leftArrivalTime = GetNumber(2);
+			int rightArrivalTime = GetNumber(3);
+			int scenarioChoice = GetNumber(4);
 			
 
-			Bridge MainBridge = new Bridge(NumberOfLeftCars, NumberOfRightCars, ArrivalTime, ScenarioChoice);
+			Bridge MainBridge = new Bridge(numberOfLeftCars, numberOfRightCars, leftArrivalTime, rightArrivalTime,scenarioChoice);
 			MainBridge.StartCars();
 			Console.ReadKey();
 		}
 
-		private static int GetNumber(int DialogType)
+		private static int GetNumber(int dialogType)
 		{
 			string msg = "Something went wrong. Please try again";
-			switch (DialogType)
+			switch (dialogType)
 			{
 				case 0:
 					msg = "Insert the amount of Cars that are on the left side of the bridge:";
@@ -35,17 +36,19 @@ namespace SingleLaneBridge
 					msg = "Insert the amount of Cars that are on the right side of the bridge:";
 					break;
 				case 2:
-					msg = "Pick the seconds that a new car will arrive on the bridge";
+					msg = "Pick the seconds that a new car will arrive on the left side of the bridge. Preferably less than 4";
 					break;
 				case 3:
-					msg = "Pick one of the following scenarios:\n" +
-						"Unfair and Unsafe Bridge\n" +
-						"Unfair and Safe Brdige\n" +
-						"AutoSwitch and Safe Bridge\n" +
-						"Fair and Safe Bridge";
+					msg =
+						"Pick the seconds that a new car will arrive on the right side of the bridge. Preferably less than 4";
 					break;
-
-
+				case 4:
+					msg = "Pick one of the following scenarios: \n" +
+						"Unfair and Unsafe Bridge:   1\n" +
+						"Unfair and Safe Brdige:     2\n" +
+						"AutoSwitch and Safe Bridge: 3\n" +
+						"Fair and Safe Bridge:       4";
+					break;
 			}
 
 			Console.WriteLine(msg);
@@ -53,7 +56,7 @@ namespace SingleLaneBridge
 			if (!int.TryParse(UserChoiceString, out int UserChoice))
 			{
 				Console.WriteLine("Wrong Input. Try again.");
-				return GetNumber(DialogType);
+				return GetNumber(dialogType);
 			}
 			else
 			{
